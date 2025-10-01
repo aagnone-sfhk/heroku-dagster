@@ -1,0 +1,34 @@
+# dagster.yaml: Production instance configuration for Heroku
+
+# Configures the storage backend for run history, event logs, and schedule/sensor state.
+# It uses PostgreSQL, which is provisioned as a Heroku add-on.
+storage:
+  postgres:
+    # This directly consumes the DATABASE_URL provided by the Heroku Postgres add-on.
+    # Using 'postgres_url' is the recommended approach for Heroku.
+    postgres_url:
+      env: DATABASE_URL
+
+# Configures where stdout/stderr from computations are stored.
+# Using a cloud-based manager like S3 is mandatory on Heroku due to its
+# ephemeral filesystem, which would otherwise cause logs to be lost on dyno restarts.
+compute_logs:
+  module: dagster_aws.s3.compute_log_manager
+  class: S3ComputeLogManager
+  config:
+    # The S3 bucket name is sourced from an environment variable.
+    bucket:
+      env: S3_BUCKET_NAME
+    # A prefix to organize logs within the bucket.
+    prefix: "dagster-compute-logs/"
+    # Note: AWS credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+    # should also be set as environment variables.
+
+# Configures the run coordinator to queue runs, preventing the system from being
+# overwhelmed by too many concurrent executions. This is a best practice for production.
+run_coordinator:
+  module: dagster.core.run_coordinator
+  class: QueuedRunCoordinator
+  config:
+    max_concurrent_runs: 10
+

@@ -1,0 +1,7 @@
+load_from:
+  - python_module:
+      # The name of the Python module containing your Dagster definitions.
+      module_name: dagster_heroku_project.definitions
+      # The directory to add to the Python path to find the module.
+      working_directory: src
+
