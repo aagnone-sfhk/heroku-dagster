@@ -4,10 +4,8 @@
 # It uses PostgreSQL, which is provisioned as a Heroku add-on.
 storage:
   postgres:
-    # This directly consumes the DATABASE_URL provided by the Heroku Postgres add-on.
-    # Using 'postgres_url' is the recommended approach for Heroku.
     postgres_url:
-      env: DATABASE_URL
+      env: DAGSTER_DATABASE_URL
 
 # Configures where stdout/stderr from computations are stored.
 # Using a cloud-based manager like S3 is mandatory on Heroku due to its
