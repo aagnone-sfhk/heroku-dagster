@@ -36,7 +36,7 @@
   "env": {
     "DAGSTER_HOME": {
       "description": "Directory where Dagster looks for dagster.yaml configuration file",
-      "value": ".",
+      "value": "/app",
       "required": true
     },
     "WEB_CONCURRENCY": {

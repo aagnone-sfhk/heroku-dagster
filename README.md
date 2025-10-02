@@ -50,8 +50,8 @@ The Procfile converts `DATABASE_URL` (from Postgres) to `DAGSTER_DATABASE_URL`, 
 Set the required environment variable:
 
 ```sh
-# Set DAGSTER_HOME to the root directory
-heroku config:set DAGSTER_HOME=. --app your-unique-dagster-app-name
+# Set DAGSTER_HOME to the directory where Dagster looks for dagster.yaml configuration file
+heroku config:set DAGSTER_HOME=/app --app your-unique-dagster-app-name
 ```
 
 **Note**: If you prefer to use your own AWS S3 bucket instead of HDrive, skip the HDrive addon and manually set `HDRIVE_S3_BUCKET`, `HDRIVE_S3_ACCESS_KEY`, and `HDRIVE_S3_SECRET_KEY`.
