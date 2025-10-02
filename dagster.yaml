@@ -18,11 +18,14 @@ compute_logs:
   config:
     # The S3 bucket name is sourced from an environment variable.
     bucket:
-      env: S3_BUCKET_NAME
+      env: HDRIVE_S3_BUCKET
     # A prefix to organize logs within the bucket.
     prefix: "dagster-compute-logs/"
-    # Note: AWS credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
-    # should also be set as environment variables.
+    # AWS credentials from Heroku environment variables
+    aws_access_key_id:
+      env: HDRIVE_S3_ACCESS_KEY
+    aws_secret_access_key:
+      env: HDRIVE_S3_SECRET_KEY
 
 # Configures the run coordinator to queue runs, preventing the system from being
 # overwhelmed by too many concurrent executions. This is a best practice for production.
