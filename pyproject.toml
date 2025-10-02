@@ -1,7 +1,14 @@
 [project]
 name = "heroku-dagster"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Dagster deployment for Heroku with PostgreSQL and S3-compatible storage"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "dagster",
+    "dagster-webserver",
+    "dagster-postgres",
+    "dagster-aws",
+    "gunicorn",
+    "pandas"
+]

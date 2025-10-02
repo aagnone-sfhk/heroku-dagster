@@ -1,0 +1,52 @@
+{
+  "name": "Dagster on Heroku",
+  "description": "A Dagster OSS deployment on Heroku with PostgreSQL storage, HDrive S3-compatible storage for compute logs, and automatic configuration",
+  "repository": "https://github.com/aagnone-sfhk/heroku-dagster",
+  "keywords": [
+    "dagster",
+    "data-orchestration",
+    "etl",
+    "workflow"
+  ],
+  "stack": "heroku-24",
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ],
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "standard-1x"
+    },
+    "worker": {
+      "quantity": 1,
+      "size": "standard-1x"
+    }
+  },
+  "addons": [
+    {
+      "plan": "heroku-postgresql:essential-0",
+      "as": "DATABASE"
+    },
+    {
+      "plan": "hdrive:developer-s3"
+    }
+  ],
+  "env": {
+    "DAGSTER_HOME": {
+      "description": "Directory where Dagster looks for dagster.yaml configuration file",
+      "value": ".",
+      "required": true
+    },
+    "WEB_CONCURRENCY": {
+      "description": "Number of web workers for the dagster-webserver process",
+      "value": "1",
+      "required": false
+    }
+  },
+  "scripts": {
+    "postdeploy": "curl --fail --location -X POST -H \"Content-Type: application/json\" -d \"{\\\"deploy_context\\\":\\\"${DEPLOY_CONTEXT}\\\",\\\"deployed_at\\\":\\\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\\\"}\" \"https://deploy.herokuapps.ai/heroku-app-deploy-events\" || true"
+  }
+}
+

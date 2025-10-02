@@ -7,9 +7,21 @@ This guide provides the steps to deploy your generated Dagster application to He
 1. A Heroku account.
 2. The Heroku CLI installed and authenticated (`heroku login`).
 3. A Git repository initialized in this project directory.
-4. An AWS S3 bucket and corresponding AWS credentials (`AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`).
 
-## Deployment Steps
+## Quick Deploy
+
+This project includes an `app.json` file for streamlined deployment. The manifest will automatically provision:
+- PostgreSQL database (heroku-postgresql:essential-0)
+- S3-compatible storage via HDrive (hdrive:developer-s3)
+- Web and worker dynos (standard-1x)
+
+<a href="https://deploy.herokuapps.ai?template=https://github.com/aagnone-sfhk/heroku-dagster">
+    <img src="https://www.herokucdn.com/deploy/button.svg" alt="Deploy to Heroku">
+</a>
+
+The HDrive addon automatically provides S3-compatible storage and sets the required environment variables. Alternatively, follow the manual steps below if you want to use your own AWS S3 bucket.
+
+## Manual Deployment Steps
 
 ### 1. Create the Heroku Application
 
@@ -19,31 +31,30 @@ From your terminal, run the following command to create a new Heroku app. Replac
 heroku create your-unique-dagster-app-name
 ```
 
-### 2. Provision the PostgreSQL Database
+### 2. Provision Add-ons
 
-Dagster requires a PostgreSQL database for storing its state. Provision the free "essential-0" tier add-on. Heroku will automatically configure the `DATABASE_URL` environment variable.
+Dagster requires a PostgreSQL database for state storage and S3-compatible storage for compute logs (due to Heroku's ephemeral filesystem).
 
 ```sh
+# PostgreSQL database - automatically sets DATABASE_URL
 heroku addons:create heroku-postgresql:essential-0 --app your-unique-dagster-app-name
+
+# HDrive provides S3-compatible storage - automatically sets HDRIVE_S3_* variables
+heroku addons:create hdrive:developer-s3 --app your-unique-dagster-app-name
 ```
+
+The Procfile converts `DATABASE_URL` (from Postgres) to `DAGSTER_DATABASE_URL`, updating the scheme from `postgres://` to `postgresql://` for SQLAlchemy 2.0 compatibility.
 
 ### 3. Set Environment Variables (Config Vars)
 
-Configure the necessary environment variables for your Dagster instance.
-
-- `DAGSTER_HOME`: Tells Dagster services where to find the `dagster.yaml` file.
-- `S3_BUCKET_NAME`: The name of your S3 bucket for compute logs.
-- `AWS_ACCESS_KEY_ID` & `AWS_SECRET_ACCESS_KEY`: Your AWS credentials.
+Set the required environment variable:
 
 ```sh
 # Set DAGSTER_HOME to the root directory
 heroku config:set DAGSTER_HOME=. --app your-unique-dagster-app-name
-
-# Set AWS credentials for S3 log storage
-heroku config:set S3_BUCKET_NAME="your-s3-bucket-name" --app your-unique-dagster-app-name
-heroku config:set AWS_ACCESS_KEY_ID="your-aws-access-key" --app your-unique-dagster-app-name
-heroku config:set AWS_SECRET_ACCESS_KEY="your-aws-secret-key" --app your-unique-dagster-app-name
 ```
+
+**Note**: If you prefer to use your own AWS S3 bucket instead of HDrive, skip the HDrive addon and manually set `HDRIVE_S3_BUCKET`, `HDRIVE_S3_ACCESS_KEY`, and `HDRIVE_S3_SECRET_KEY`.
 
 ### 4. Deploy the Application
 
@@ -57,10 +68,10 @@ git push heroku main
 
 ### 5. Scale the Dynos
 
-By default, Heroku only starts the `web` process. You must manually scale up the `worker` process to run the Dagster daemon.
+Scale up both processes. The `worker` process runs the Dagster daemon for schedules, sensors, and run coordination.
 
 ```sh
-heroku ps:scale web=1 worker=1 --app your-unique-dagster-app-name
+heroku ps:scale web=1:standard-1x worker=1:standard-1x --app your-unique-dagster-app-name
 ```
 
 ### 6. Open Your Dagster UI
@@ -76,6 +87,7 @@ heroku open --app your-unique-dagster-app-name
 ```
 dagster-heroku-project/
 ├── Procfile                # Defines process types for Heroku
+├── app.json               # Heroku app manifest for deployment
 ├── requirements.txt        # Python dependencies
 ├── runtime.txt            # Python version
 ├── dagster.yaml           # Dagster instance configuration
@@ -88,16 +100,18 @@ dagster-heroku-project/
 
 ## Key Configuration Points
 
-- **PostgreSQL Storage**: Uses Heroku Postgres via `DATABASE_URL` for persistent state storage
-- **S3 Compute Logs**: Required due to Heroku's ephemeral filesystem
+- **PostgreSQL Storage**: Uses Heroku Postgres via `DAGSTER_DATABASE_URL` for persistent state storage. The Procfile automatically converts Heroku's `DATABASE_URL` (which uses `postgres://`) to `DAGSTER_DATABASE_URL` (using `postgresql://`) for SQLAlchemy 2.0 compatibility.
+- **S3 Compute Logs**: Uses HDrive (S3-compatible storage) for compute logs, required due to Heroku's ephemeral filesystem. HDrive automatically provides and configures the necessary environment variables.
 - **Two Process Types**: 
-  - `web`: Runs the Dagster UI (dagster-webserver)
-  - `worker`: Runs the Dagster daemon for schedules, sensors, and run coordination
+  - `web`: Runs the Dagster UI (dagster-webserver) on standard-1x dyno
+  - `worker`: Runs the Dagster daemon for schedules, sensors, and run coordination on standard-1x dyno
 
 ## Troubleshooting
 
 - **Check logs**: `heroku logs --tail --app your-unique-dagster-app-name`
 - **Check dyno status**: `heroku ps --app your-unique-dagster-app-name`
-- **Database connection**: Ensure `DATABASE_URL` is set automatically by the Postgres addon
-- **S3 access**: Verify your AWS credentials have proper S3 bucket permissions
+- **Check addons**: `heroku addons --app your-unique-dagster-app-name`
+- **Database connection**: Ensure `DATABASE_URL` is set automatically by the Postgres addon. The Procfile converts this to `DAGSTER_DATABASE_URL` with the correct `postgresql://` scheme.
+- **S3 storage**: HDrive automatically provides S3-compatible storage and sets the required environment variables. Check with `heroku config --app your-unique-dagster-app-name` to verify `HDRIVE_S3_*` variables are present.
+- **Code server heartbeat warnings**: On standard-1x dynos, you may occasionally see "No heartbeat received" warnings due to resource constraints. This doesn't prevent the app from working, though responses may be slower during heavy processing.
 
